@@ -292,3 +292,8 @@ npx tsc --noEmit
 - Add optimistic UI rollback to create/delete flows with more detailed error
   states.
 - Add ticket editing beyond status changes.
+
+## 8. The deployment urls are
+- Frontend: https://ticket-management-production-51fa.up.railway.app/
+- Backend: https://ticket-management-production-412a.up.railway.app/docs
+- Backend: https://ticket-management-production-412a.up.railway.app/redoc
