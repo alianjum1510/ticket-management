@@ -5,7 +5,8 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "mkdir -p /app/data && alembic upgrade head && python scripts/seed_users.py && python scripts/seed_tickets.py && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}",
+    "preDeployCommand": "mkdir -p /app/data && alembic upgrade head && python scripts/seed_users.py && python scripts/seed_tickets.py",
+    "startCommand": "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}",
     "healthcheckPath": "/docs",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
