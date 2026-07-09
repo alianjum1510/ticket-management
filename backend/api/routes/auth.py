@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Form, status
+from pydantic import EmailStr
 
 from api.deps import CurrentUserDep, UserServiceDep
 from core.security import create_access_token
@@ -19,15 +19,16 @@ async def register(payload: UserRegister, service: UserServiceDep) -> UserRead:
 
 @router.post("/login", response_model=Token)
 async def login(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    email: Annotated[EmailStr, Form()],
+    password: Annotated[str, Form(min_length=1)],
     service: UserServiceDep,
 ) -> Token:
-    """Exchange email (as username) and password for a JWT access token."""
-    user = await service.authenticate(form_data.username, form_data.password)
+    """Exchange an email address and password for a JWT access token."""
+    user = await service.authenticate(email, password)
     return Token(access_token=create_access_token(user.id, user.role.value))
 
 
-@router.get("/me", response_model=UserRead)
+@router.get("/user-details", response_model=UserRead)
 async def read_current_user(current_user: CurrentUserDep) -> UserRead:
     """Return the profile of the currently authenticated user."""
     return UserRead.model_validate(current_user)

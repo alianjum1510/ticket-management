@@ -5,7 +5,7 @@ role-based access control, filtering, sorting, pagination, and SQLite storage.
 
 ## Features
 
-- User registration and OAuth2 password login
+- User registration and email/password login
 - JWT-based authentication
 - User, admin, and super-admin roles
 - Ticket creation, listing, search, filtering, sorting, and pagination

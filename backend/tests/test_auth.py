@@ -1,9 +1,10 @@
+import pytest
 from httpx import AsyncClient
 
 REGISTER_PAYLOAD = {
     "email": "new.user@example.com",
     "full_name": "New User",
-    "password": "supersecret1",
+    "password": "SuperSecret1!",
 }
 
 
@@ -33,12 +34,35 @@ async def test_register_rejects_short_password(client: AsyncClient):
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize(
+    ("password", "missing_requirement"),
+    [
+        ("lowercase1!", "uppercase letter"),
+        ("UPPERCASE1!", "lowercase letter"),
+        ("NoNumbers!", "number"),
+        ("NoSpecial1", "special character"),
+    ],
+)
+async def test_register_rejects_weak_password(
+    client: AsyncClient,
+    password: str,
+    missing_requirement: str,
+):
+    response = await client.post(
+        "/api/auth/register",
+        json={**REGISTER_PAYLOAD, "password": password},
+    )
+
+    assert response.status_code == 422
+    assert missing_requirement in response.json()["detail"]
+
+
 async def test_login_returns_usable_token(client: AsyncClient):
     await client.post("/api/auth/register", json=REGISTER_PAYLOAD)
 
     response = await client.post(
         "/api/auth/login",
-        data={"username": REGISTER_PAYLOAD["email"], "password": REGISTER_PAYLOAD["password"]},
+        data={"email": REGISTER_PAYLOAD["email"], "password": REGISTER_PAYLOAD["password"]},
     )
 
     assert response.status_code == 200
@@ -54,11 +78,20 @@ async def test_login_with_wrong_password_fails(client: AsyncClient):
 
     response = await client.post(
         "/api/auth/login",
-        data={"username": REGISTER_PAYLOAD["email"], "password": "wrong-password"},
+        data={"email": REGISTER_PAYLOAD["email"], "password": "wrong-password"},
     )
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Incorrect email or password"
+
+
+async def test_login_requires_email_field(client: AsyncClient):
+    response = await client.post(
+        "/api/auth/login",
+        data={"username": REGISTER_PAYLOAD["email"], "password": "supersecret1"},
+    )
+
+    assert response.status_code == 422
 
 
 async def test_me_requires_authentication(client: AsyncClient):

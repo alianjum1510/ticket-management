@@ -21,7 +21,6 @@ _PRIORITY_ORDER = case(
 class TicketSortField(str, Enum):
     CREATED_AT = "created_at"
     PRIORITY = "priority"
-    TITLE = "title"
 
 
 class SortOrder(str, Enum):
@@ -32,7 +31,6 @@ class SortOrder(str, Enum):
 _SORT_COLUMNS = {
     TicketSortField.CREATED_AT: Ticket.created_at,
     TicketSortField.PRIORITY: _PRIORITY_ORDER,
-    TicketSortField.TITLE: func.lower(Ticket.title),
 }
 
 

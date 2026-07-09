@@ -2,7 +2,7 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.security import decode_access_token
@@ -11,7 +11,10 @@ from models.users import User, UserRole
 from services.ticket_service import TicketService
 from services.user_service import UserService
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+bearer_scheme = HTTPBearer(
+    bearerFormat="JWT",
+    description="Enter the JWT access token returned by /api/auth/login.",
+)
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 
@@ -28,7 +31,10 @@ TicketServiceDep = Annotated[TicketService, Depends(get_ticket_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: DbDep) -> User:
+async def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
+    db: DbDep,
+) -> User:
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -36,7 +42,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Db
     )
 
     try:
-        payload = decode_access_token(token)
+        payload = decode_access_token(credentials.credentials)
         user_id = int(payload["sub"])
     except (jwt.InvalidTokenError, KeyError, ValueError):
         raise credentials_error
