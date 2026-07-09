@@ -6,7 +6,7 @@ services:
     environment:
       DATABASE_URL: sqlite+aiosqlite:////app/data/app.db
       ENVIRONMENT: local
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-docker-secret-change-me}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in your root .env file}
       CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
     ports:
       - "8000:8000"
@@ -19,9 +19,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in your root .env file}
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in your root .env file}
     ports:
       - "3000:3000"
     depends_on:

@@ -1,5 +1,8 @@
 from collections.abc import AsyncGenerator
 from datetime import datetime
+import os
+
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-with-at-least-32-chars")
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient

@@ -45,6 +45,7 @@ Requirements:
 From the project root:
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
@@ -94,23 +95,24 @@ Install frontend:
 ```bash
 cd frontend
 npm install
+cp .env.example .env.local
 ```
 
-Optional frontend environment file:
+Frontend environment file:
 
 ```bash
 cd frontend
-touch .env.local
+cp .env.example .env.local
 ```
 
-Add:
+Set:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```
 
-If this value is not set, the frontend defaults to
-`http://localhost:8000/api`.
+`NEXT_PUBLIC_API_URL` is required. The frontend does not hardcode a fallback
+API URL.
 
 ## 3. How to run the frontend and backend
 
@@ -119,6 +121,7 @@ If this value is not set, the frontend defaults to
 From the root directory:
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
