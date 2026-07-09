@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import FilterBar, { DateSortOrder } from "@/components/FilterBar";
 import TicketColumn from "@/components/TicketColumns";
 import TicketModal from "@/components/TicketModal";
 import CreateTicketModal from "@/components/CreateTicketModal";
+import ToastContainer, { ToastMessage } from "@/components/Toast";
+import { LoaderCircle } from "lucide-react";
 import {
   ApiError,
   createTicket,
@@ -20,6 +22,10 @@ import {
   updateTicketStatus,
 } from "@/lib/api";
 import { ApiPriority, Priority, Status, Ticket, User } from "@/lib/types";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function Dashboard() {
   const router = useRouter();
@@ -37,11 +43,24 @@ export default function Dashboard() {
   const [draggedTicket, setDraggedTicket] = useState<Ticket | null>(null);
   const [hoveredStatus, setHoveredStatus] = useState<Status | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
   const [deletingTicket, setDeletingTicket] = useState(false);
+  const [updatingStatusTicketId, setUpdatingStatusTicketId] =
+    useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  const showToast = useCallback(
+    (type: ToastMessage["type"], message: string) => {
+    const id = Date.now();
+
+    setToasts((current) => [...current, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 3500);
+    },
+    [],
+  );
 
   useEffect(() => {
     const timer = setTimeout(
@@ -62,15 +81,13 @@ export default function Dashboard() {
           return;
         }
 
-        setError(
-          error instanceof Error ? error.message : "Failed to load user",
-        );
+        showToast("error", getErrorMessage(error, "Failed to load user"));
         setLoading(false);
       }
     }
 
     loadUser();
-  }, [router]);
+  }, [router, showToast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +103,6 @@ export default function Dashboard() {
 
         if (!cancelled) {
           setTickets(ticketPage.items.map(mapApiTicket));
-          setError("");
         }
       } catch (error) {
         if (cancelled) return;
@@ -96,9 +112,7 @@ export default function Dashboard() {
           return;
         }
 
-        setError(
-          error instanceof Error ? error.message : "Failed to load tickets",
-        );
+        showToast("error", getErrorMessage(error, "Failed to load tickets"));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -111,11 +125,16 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [dateSortOrder, debouncedSearch, router]);
+  }, [dateSortOrder, debouncedSearch, router, showToast]);
 
   async function handleStatusChange(ticketId: string, newStatus: Status) {
     const previousTickets = tickets;
     const previousSelectedTicket = selectedTicket;
+    const currentTicket = tickets.find((ticket) => ticket.id === ticketId);
+
+    if (currentTicket?.status === newStatus) return;
+
+    setUpdatingStatusTicketId(ticketId);
 
     setTickets((current) =>
       current.map((ticket) =>
@@ -144,14 +163,13 @@ export default function Dashboard() {
       setSelectedTicket((current) =>
         current && current.id === ticketId ? mapApiTicket(updated) : current,
       );
+      showToast("success", "Ticket status updated successfully.");
     } catch (error) {
       setTickets(previousTickets);
       setSelectedTicket(previousSelectedTicket);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Could not update ticket",
-      );
+      showToast("error", getErrorMessage(error, "Could not update ticket"));
+    } finally {
+      setUpdatingStatusTicketId(null);
     }
   }
 
@@ -169,27 +187,6 @@ export default function Dashboard() {
     setHoveredStatus(null);
   }
 
-  async function handleResolve(ticket: Ticket) {
-    try {
-      const updated = await updateTicketStatus(
-        Number(ticket.id),
-        statusApiValues["Resolved"],
-      );
-      const mapped = mapApiTicket(updated);
-
-      setTickets((current) =>
-        current.map((item) => (item.id === mapped.id ? mapped : item)),
-      );
-      setSelectedTicket((current) =>
-        current && current.id === mapped.id ? mapped : current,
-      );
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Could not update ticket",
-      );
-    }
-  }
-
   async function handleCreate(payload: {
     title: string;
     description: string;
@@ -198,17 +195,15 @@ export default function Dashboard() {
     priority: ApiPriority;
   }) {
     setCreating(true);
-    setCreateError("");
 
     try {
       const created = await createTicket(payload);
 
       setTickets((current) => [mapApiTicket(created), ...current]);
       setCreateOpen(false);
+      showToast("success", "Ticket created successfully.");
     } catch (error) {
-      setCreateError(
-        error instanceof Error ? error.message : "Could not create ticket",
-      );
+      showToast("error", getErrorMessage(error, "Could not create ticket"));
     } finally {
       setCreating(false);
     }
@@ -237,18 +232,14 @@ export default function Dashboard() {
         current.filter((item) => item.id !== ticket.id),
       );
       setSelectedTicket(null);
-      setError("");
+      showToast("success", "Ticket deleted successfully.");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         router.push("/login");
         return;
       }
 
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Could not delete ticket",
-      );
+      showToast("error", getErrorMessage(error, "Could not delete ticket"));
     } finally {
       setDeletingTicket(false);
     }
@@ -268,15 +259,33 @@ export default function Dashboard() {
   );
 
   if (loading) {
-    return <main className="px-2 py-8">Loading tickets...</main>;
+    return (
+      <main className="grid min-h-screen place-items-center bg-white">
+        <LoaderCircle size={34} className="animate-spin text-[#4F46E5]" />
+        <ToastContainer
+          toasts={toasts}
+          onDismiss={(id) =>
+            setToasts((current) =>
+              current.filter((toast) => toast.id !== id),
+            )
+          }
+        />
+      </main>
+    );
   }
 
   if (!user) {
     return (
-      <main className="px-2 py-8">
-        <p className="rounded bg-red-50 p-3 text-red-700">
-          {error || "Redirecting to login..."}
-        </p>
+      <main className="grid min-h-screen place-items-center bg-white">
+        <LoaderCircle size={34} className="animate-spin text-[#4F46E5]" />
+        <ToastContainer
+          toasts={toasts}
+          onDismiss={(id) =>
+            setToasts((current) =>
+              current.filter((toast) => toast.id !== id),
+            )
+          }
+        />
       </main>
     );
   }
@@ -285,9 +294,7 @@ export default function Dashboard() {
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-7xl px-2 py-8">
         <Header
-          user={user}
           onNewTicket={() => {
-            setCreateError("");
             setCreateOpen(true);
           }}
           onLogout={() => {
@@ -295,12 +302,6 @@ export default function Dashboard() {
             router.replace("/login");
           }}
         />
-
-        {error && (
-          <p className="mb-4 rounded bg-red-50 p-3 text-red-700">
-            {error}
-          </p>
-        )}
 
         <FilterBar
           statusFilter={statusFilter}
@@ -375,23 +376,31 @@ export default function Dashboard() {
         <TicketModal
           ticket={selectedTicket}
           onClose={() => setSelectedTicket(null)}
-          onResolve={handleResolve}
           onStatusChange={(newStatus) =>
             handleStatusChange(selectedTicket.id, newStatus)
           }
           onDelete={() => handleDeleteTicket(selectedTicket)}
+          updatingStatus={updatingStatusTicketId === selectedTicket.id}
           deleting={deletingTicket}
         />
       )}
 
       {createOpen && (
         <CreateTicketModal
-          error={createError}
           submitting={creating}
           onClose={() => setCreateOpen(false)}
           onSubmit={handleCreate}
         />
       )}
+
+      <ToastContainer
+        toasts={toasts}
+        onDismiss={(id) =>
+          setToasts((current) =>
+            current.filter((toast) => toast.id !== id),
+          )
+        }
+      />
     </main>
   );
 }

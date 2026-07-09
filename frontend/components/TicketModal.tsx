@@ -9,6 +9,7 @@ import {
   Flag,
   Calendar,
   Hash,
+  LoaderCircle,
   Trash2,
 } from "lucide-react";
 import { Status, Ticket } from "@/lib/types";
@@ -20,16 +21,16 @@ const statusOptions: Status[] = ["Open", "In Progress", "Resolved"];
 export default function TicketModal({
   ticket,
   onClose,
-  onResolve,
   onStatusChange,
   onDelete,
+  updatingStatus,
   deleting,
 }: {
   ticket: Ticket;
   onClose: () => void;
-  onResolve: (ticket: Ticket) => void;
   onStatusChange: (status: Status) => void;
   onDelete: () => void;
+  updatingStatus: boolean;
   deleting: boolean;
 }) {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -152,19 +153,28 @@ export default function TicketModal({
                 <span className="flex items-center gap-2 text-[#6B7280]">
                   <ListTodo size={15} /> Status
                 </span>
-                <select
-                  value={ticket.status}
-                  onChange={(event) =>
-                    onStatusChange(event.target.value as Status)
-                  }
-                  className="rounded-xl border border-[#D8DEE8] bg-[#F8FAFC] px-3 py-2 text-xs font-medium text-[#1E1B4B] outline-none transition focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20"
-                >
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2">
+                  {updatingStatus && (
+                    <LoaderCircle
+                      size={15}
+                      className="animate-spin text-[#4F46E5]"
+                    />
+                  )}
+                  <select
+                    value={ticket.status}
+                    disabled={updatingStatus}
+                    onChange={(event) =>
+                      onStatusChange(event.target.value as Status)
+                    }
+                    className="rounded-xl border border-[#D8DEE8] bg-[#F8FAFC] px-3 py-2 text-xs font-medium text-[#1E1B4B] outline-none transition focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="flex items-center justify-between gap-2 py-4">
                 <span className="flex items-center gap-2 text-[#6B7280]">
@@ -217,9 +227,13 @@ export default function TicketModal({
                     type="button"
                     onClick={onDelete}
                     disabled={deleting}
-                    className="flex-1 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-red-300"
+                    className="flex flex-1 items-center justify-center rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-red-300"
                   >
-                    {deleting ? "Deleting..." : "Delete"}
+                    {deleting ? (
+                      <LoaderCircle size={18} className="animate-spin" />
+                    ) : (
+                      "Delete"
+                    )}
                   </button>
                 </div>
               </div>

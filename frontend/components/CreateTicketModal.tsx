@@ -1,18 +1,16 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
 import { ApiPriority } from "@/lib/types";
 
 const priorities: ApiPriority[] = ["low", "medium", "high"];
 
 export default function CreateTicketModal({
-  error,
   submitting,
   onClose,
   onSubmit,
 }: {
-  error: string;
   submitting: boolean;
   onClose: () => void;
   onSubmit: (payload: {
@@ -180,18 +178,16 @@ export default function CreateTicketModal({
             </select>
           </div>
 
-          {error && (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              {error}
-            </p>
-          )}
-
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-[#3046FF] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#3046FF]/25 transition-colors hover:bg-[#2637D8] disabled:cursor-not-allowed disabled:bg-[#8D98FF]"
+            className="flex w-full items-center justify-center rounded-xl bg-[#3046FF] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#3046FF]/25 transition-colors hover:bg-[#2637D8] disabled:cursor-not-allowed disabled:bg-[#8D98FF]"
           >
-            {submitting ? "Creating..." : "Create Ticket"}
+            {submitting ? (
+              <LoaderCircle size={22} className="animate-spin" />
+            ) : (
+              "Create Ticket"
+            )}
           </button>
         </form>
       </div>

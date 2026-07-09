@@ -1,14 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Plus, LogOut, Ticket, User as UserIcon } from "lucide-react";
-import { User } from "@/lib/types";
 
 export default function Header({
-  user,
   onNewTicket,
   onLogout,
 }: {
-  user: User;
   onNewTicket: () => void;
   onLogout: () => void;
 }) {
