@@ -104,6 +104,8 @@ export function getTickets(params?: {
   status?: ApiStatus;
   priority?: ApiPriority;
   search?: string;
+  sortBy?: "created_at" | "priority";
+  sortOrder?: "asc" | "desc";
   page?: number;
   pageSize?: number;
 }) {
@@ -112,6 +114,8 @@ export function getTickets(params?: {
   if (params?.status) query.set("status", params.status);
   if (params?.priority) query.set("priority", params.priority);
   if (params?.search) query.set("search", params.search);
+  if (params?.sortBy) query.set("sort_by", params.sortBy);
+  if (params?.sortOrder) query.set("sort_order", params.sortOrder);
   if (params?.page) query.set("page", String(params.page));
   if (params?.pageSize) query.set("page_size", String(params.pageSize));
 

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Priority, Status } from "@/lib/types";
 
+export type DateSortOrder = "desc" | "asc";
+
 type FilterOption<T extends string> = {
   label: string;
   value: T;
@@ -43,12 +45,12 @@ function FilterDropdown<T extends string>({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex min-w-[150px] items-center justify-between gap-3 rounded-xl border border-[#D9CBB0] bg-[#FBF6EC] px-4 py-3 text-sm font-medium text-[#1F3A4D] shadow-sm transition-colors hover:bg-[#F6EEDC] focus:outline-none focus:ring-2 focus:ring-[#3A5A70]/30"
+        className="flex min-w-[150px] items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-100/70 px-4 py-3 text-sm font-medium text-blue-900 shadow-sm transition-colors hover:bg-blue-200/70 focus:outline-none focus:ring-2 focus:ring-blue-300/50"
       >
         <span>{selected?.label}</span>
         <ChevronDown
           size={16}
-          className={`text-[#5B7C90] transition-transform ${
+          className={`text-blue-700 transition-transform ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -84,6 +86,8 @@ export default function FilterBar({
   setStatusFilter,
   priorityFilter,
   setPriorityFilter,
+  dateSortOrder,
+  setDateSortOrder,
   search,
   setSearch,
 }: {
@@ -91,6 +95,8 @@ export default function FilterBar({
   setStatusFilter: (s: Status | "All") => void;
   priorityFilter: Priority | "All";
   setPriorityFilter: (p: Priority | "All") => void;
+  dateSortOrder: DateSortOrder;
+  setDateSortOrder: (order: DateSortOrder) => void;
   search: string;
   setSearch: (s: string) => void;
 }) {
@@ -108,6 +114,11 @@ export default function FilterBar({
     { label: "High", value: "High" },
   ];
 
+  const dateSortOptions: FilterOption<DateSortOrder>[] = [
+    { label: "Date: Descending", value: "desc" },
+    { label: "Date: Ascending", value: "asc" },
+  ];
+
   return (
     <div className="mb-6 flex flex-wrap items-center gap-3">
       <FilterDropdown
@@ -120,6 +131,12 @@ export default function FilterBar({
         value={priorityFilter}
         options={priorityOptions}
         onChange={setPriorityFilter}
+      />
+
+      <FilterDropdown
+        value={dateSortOrder}
+        options={dateSortOptions}
+        onChange={setDateSortOrder}
       />
 
       <div className="relative max-w-md flex-1 min-w-[240px]">

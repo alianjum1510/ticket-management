@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
-import FilterBar from "@/components/FilterBar";
+import FilterBar, { DateSortOrder } from "@/components/FilterBar";
 import TicketColumn from "@/components/TicketColumns";
 import TicketModal from "@/components/TicketModal";
 import CreateTicketModal from "@/components/CreateTicketModal";
 import {
   ApiError,
   createTicket,
+  deleteTicket,
   getCurrentUser,
   getTicket,
   getTickets,
@@ -28,12 +29,17 @@ export default function Dashboard() {
     useState<Status | "All">("All");
   const [priorityFilter, setPriorityFilter] =
     useState<Priority | "All">("All");
+  const [dateSortOrder, setDateSortOrder] =
+    useState<DateSortOrder>("desc");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [draggedTicket, setDraggedTicket] = useState<Ticket | null>(null);
+  const [hoveredStatus, setHoveredStatus] = useState<Status | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [deletingTicket, setDeletingTicket] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -73,6 +79,8 @@ export default function Dashboard() {
       try {
         const ticketPage = await getTickets({
           search: debouncedSearch || undefined,
+          sortBy: "created_at",
+          sortOrder: dateSortOrder,
           pageSize: 100,
         });
 
@@ -103,10 +111,11 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, router]);
+  }, [dateSortOrder, debouncedSearch, router]);
 
-  async function handleDrop(ticketId: string, newStatus: Status) {
+  async function handleStatusChange(ticketId: string, newStatus: Status) {
     const previousTickets = tickets;
+    const previousSelectedTicket = selectedTicket;
 
     setTickets((current) =>
       current.map((ticket) =>
@@ -114,6 +123,11 @@ export default function Dashboard() {
           ? { ...ticket, status: newStatus }
           : ticket,
       ),
+    );
+    setSelectedTicket((current) =>
+      current && current.id === ticketId
+        ? { ...current, status: newStatus }
+        : current,
     );
 
     try {
@@ -127,14 +141,32 @@ export default function Dashboard() {
           ticket.id === ticketId ? mapApiTicket(updated) : ticket,
         ),
       );
+      setSelectedTicket((current) =>
+        current && current.id === ticketId ? mapApiTicket(updated) : current,
+      );
     } catch (error) {
       setTickets(previousTickets);
+      setSelectedTicket(previousSelectedTicket);
       setError(
         error instanceof Error
           ? error.message
           : "Could not update ticket",
       );
     }
+  }
+
+  async function handleDrop(ticketId: string, newStatus: Status) {
+    setDraggedTicket(null);
+    setHoveredStatus(null);
+
+    if (!ticketId) return;
+
+    await handleStatusChange(ticketId, newStatus);
+  }
+
+  function handleDragEnd() {
+    setDraggedTicket(null);
+    setHoveredStatus(null);
   }
 
   async function handleResolve(ticket: Ticket) {
@@ -196,6 +228,32 @@ export default function Dashboard() {
     }
   }
 
+  async function handleDeleteTicket(ticket: Ticket) {
+    setDeletingTicket(true);
+
+    try {
+      await deleteTicket(Number(ticket.id));
+      setTickets((current) =>
+        current.filter((item) => item.id !== ticket.id),
+      );
+      setSelectedTicket(null);
+      setError("");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Could not delete ticket",
+      );
+    } finally {
+      setDeletingTicket(false);
+    }
+  }
+
   const filteredTickets = tickets.filter((ticket) => {
     const matchesStatus =
       statusFilter === "All" || ticket.status === statusFilter;
@@ -249,6 +307,8 @@ export default function Dashboard() {
           setStatusFilter={setStatusFilter}
           priorityFilter={priorityFilter}
           setPriorityFilter={setPriorityFilter}
+          dateSortOrder={dateSortOrder}
+          setDateSortOrder={setDateSortOrder}
           search={search}
           setSearch={setSearch}
         />
@@ -259,6 +319,16 @@ export default function Dashboard() {
             status="Open"
             tickets={filteredTickets}
             highlightedIds={highlightedIds}
+            draggedTicket={draggedTicket}
+            hoveredStatus={hoveredStatus}
+            onDragStart={setDraggedTicket}
+            onDragEnd={handleDragEnd}
+            onDragEnter={setHoveredStatus}
+            onDragLeave={(status) => {
+              setHoveredStatus((current) =>
+                current === status ? null : current,
+              );
+            }}
             onDrop={handleDrop}
             onSelect={handleSelect}
           />
@@ -267,6 +337,16 @@ export default function Dashboard() {
             status="In Progress"
             tickets={filteredTickets}
             highlightedIds={highlightedIds}
+            draggedTicket={draggedTicket}
+            hoveredStatus={hoveredStatus}
+            onDragStart={setDraggedTicket}
+            onDragEnd={handleDragEnd}
+            onDragEnter={setHoveredStatus}
+            onDragLeave={(status) => {
+              setHoveredStatus((current) =>
+                current === status ? null : current,
+              );
+            }}
             onDrop={handleDrop}
             onSelect={handleSelect}
           />
@@ -275,6 +355,16 @@ export default function Dashboard() {
             status="Resolved"
             tickets={filteredTickets}
             highlightedIds={highlightedIds}
+            draggedTicket={draggedTicket}
+            hoveredStatus={hoveredStatus}
+            onDragStart={setDraggedTicket}
+            onDragEnd={handleDragEnd}
+            onDragEnter={setHoveredStatus}
+            onDragLeave={(status) => {
+              setHoveredStatus((current) =>
+                current === status ? null : current,
+              );
+            }}
             onDrop={handleDrop}
             onSelect={handleSelect}
           />
@@ -286,6 +376,11 @@ export default function Dashboard() {
           ticket={selectedTicket}
           onClose={() => setSelectedTicket(null)}
           onResolve={handleResolve}
+          onStatusChange={(newStatus) =>
+            handleStatusChange(selectedTicket.id, newStatus)
+          }
+          onDelete={() => handleDeleteTicket(selectedTicket)}
+          deleting={deletingTicket}
         />
       )}
 

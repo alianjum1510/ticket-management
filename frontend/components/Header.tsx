@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Plus, LogOut, User as UserIcon } from "lucide-react";
+import { Plus, LogOut, Ticket, User as UserIcon } from "lucide-react";
 import { User } from "@/lib/types";
 
 export default function Header({
@@ -28,9 +28,14 @@ export default function Header({
 
   return (
     <div className="flex justify-between items-center mb-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-[#1F3A4D]">All Tickets</h1>
-        <p className="text-sm text-[#5B7C90] mt-1">Manage and track support tickets</p>
+      <div className="flex items-center gap-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF0FE]">
+          <Ticket size={28} className="text-[#4F46E5]" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-semibold text-[#1F3A4D]">All Tickets</h1>
+          <p className="text-sm text-[#5B7C90] mt-1">Manage and track support tickets</p>
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <button

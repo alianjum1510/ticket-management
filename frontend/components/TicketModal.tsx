@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   X,
   Ticket as TicketIcon,
@@ -9,29 +9,46 @@ import {
   Flag,
   Calendar,
   Hash,
-  CheckCircle2,
+  Trash2,
 } from "lucide-react";
-import { Ticket } from "@/lib/types";
+import { Status, Ticket } from "@/lib/types";
 import PriorityBadge from "./PriorityBadge";
 import StatusBadge from "./StatusBadge";
+
+const statusOptions: Status[] = ["Open", "In Progress", "Resolved"];
 
 export default function TicketModal({
   ticket,
   onClose,
   onResolve,
+  onStatusChange,
+  onDelete,
+  deleting,
 }: {
   ticket: Ticket;
   onClose: () => void;
   onResolve: (ticket: Ticket) => void;
+  onStatusChange: (status: Status) => void;
+  onDelete: () => void;
+  deleting: boolean;
 }) {
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        if (confirmDeleteOpen) {
+          setConfirmDeleteOpen(false);
+          return;
+        }
+
+        onClose();
+      }
     }
 
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  }, [confirmDeleteOpen, onClose]);
 
   return (
     <div
@@ -135,7 +152,19 @@ export default function TicketModal({
                 <span className="flex items-center gap-2 text-[#6B7280]">
                   <ListTodo size={15} /> Status
                 </span>
-                <StatusBadge status={ticket.status} />
+                <select
+                  value={ticket.status}
+                  onChange={(event) =>
+                    onStatusChange(event.target.value as Status)
+                  }
+                  className="rounded-xl border border-[#D8DEE8] bg-[#F8FAFC] px-3 py-2 text-xs font-medium text-[#1E1B4B] outline-none transition focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20"
+                >
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex items-center justify-between gap-2 py-4">
                 <span className="flex items-center gap-2 text-[#6B7280]">
@@ -156,6 +185,45 @@ export default function TicketModal({
                 <span className="text-[#1E1B4B]">#{ticket.ticketNumber}</span>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={deleting}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-100/70 px-4 py-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-200/80 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Trash2 size={16} />
+              Delete Ticket
+            </button>
+
+            {confirmDeleteOpen && (
+              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-semibold text-red-800">
+                  Do you really want to delete this ticket?
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-red-600">
+                  This action cannot be undone.
+                </p>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteOpen(false)}
+                    disabled={deleting}
+                    className="flex-1 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    disabled={deleting}
+                    className="flex-1 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-red-300"
+                  >
+                    {deleting ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
