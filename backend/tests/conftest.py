@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from datetime import datetime
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -60,6 +61,7 @@ async def create_ticket(
     customer_name: str = "Jane Doe",
     status: TicketStatus = TicketStatus.OPEN,
     priority: TicketPriority = TicketPriority.MEDIUM,
+    created_at: datetime | None = None,
 ) -> Ticket:
     async with TestSessionLocal() as session:
         ticket = Ticket(
@@ -69,6 +71,7 @@ async def create_ticket(
             customer_email="customer@example.com",
             status=status,
             priority=priority,
+            **({"created_at": created_at} if created_at is not None else {}),
         )
         session.add(ticket)
         await session.commit()

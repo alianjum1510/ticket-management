@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from httpx import AsyncClient
 
 from models.tickets import TicketPriority, TicketStatus
@@ -177,15 +179,17 @@ class TestPaginationAndSorting:
         priorities = [item["priority"] for item in response.json()["items"]]
         assert priorities == ["high", "medium", "low"]
 
-    async def test_sort_by_title_ascending(self, client: AsyncClient, user_headers):
-        for title in ["banana", "Apple", "cherry"]:
-            await create_ticket(title=title)
+    async def test_sort_by_created_at_ascending(self, client: AsyncClient, user_headers):
+        base_time = datetime(2026, 7, 9, tzinfo=timezone.utc)
+        await create_ticket(title="newest", created_at=base_time + timedelta(days=2))
+        await create_ticket(title="oldest", created_at=base_time)
+        await create_ticket(title="middle", created_at=base_time + timedelta(days=1))
 
         response = await client.get(
             "/api/tickets",
-            params={"sort_by": "title", "sort_order": "asc"},
+            params={"sort_by": "created_at", "sort_order": "asc"},
             headers=user_headers,
         )
 
         titles = [item["title"] for item in response.json()["items"]]
-        assert titles == ["Apple", "banana", "cherry"]
+        assert titles == ["oldest", "middle", "newest"]

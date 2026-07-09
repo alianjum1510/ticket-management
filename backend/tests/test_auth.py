@@ -68,7 +68,9 @@ async def test_login_returns_usable_token(client: AsyncClient):
     assert response.status_code == 200
     token = response.json()["access_token"]
 
-    me = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    me = await client.get(
+        "/api/auth/user-details", headers={"Authorization": f"Bearer {token}"}
+    )
     assert me.status_code == 200
     assert me.json()["email"] == REGISTER_PAYLOAD["email"]
 
@@ -94,12 +96,12 @@ async def test_login_requires_email_field(client: AsyncClient):
     assert response.status_code == 422
 
 
-async def test_me_requires_authentication(client: AsyncClient):
-    assert (await client.get("/api/auth/me")).status_code == 401
+async def test_user_details_requires_authentication(client: AsyncClient):
+    assert (await client.get("/api/auth/user-details")).status_code == 401
 
 
-async def test_me_rejects_invalid_token(client: AsyncClient):
+async def test_user_details_rejects_invalid_token(client: AsyncClient):
     response = await client.get(
-        "/api/auth/me", headers={"Authorization": "Bearer not-a-real-token"}
+        "/api/auth/user-details", headers={"Authorization": "Bearer not-a-real-token"}
     )
     assert response.status_code == 401
