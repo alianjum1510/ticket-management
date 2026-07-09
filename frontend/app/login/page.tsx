@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ticket } from "lucide-react";
+import { LoaderCircle, Ticket } from "lucide-react";
 import { login, register } from "@/lib/api";
+import ToastContainer, { ToastMessage } from "@/components/Toast";
 
 const inputStyles =
   "w-full rounded-xl border border-[#E2E4F0] bg-[#F8F8FD] p-3 text-sm text-[#1E1B4B] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/30 focus:border-[#4F46E5]";
@@ -14,23 +15,37 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [loading, setLoading] = useState(false);
+
+  function showToast(type: ToastMessage["type"], message: string) {
+    const id = Date.now();
+
+    setToasts((current) => [...current, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 3500);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
       if (mode === "signup") {
         await register({ email, full_name: fullName, password });
+        showToast("success", "Account created successfully. Please sign in.");
+        setMode("login");
+        setFullName("");
+        setPassword("");
+        return;
       }
 
       await login(email, password);
       router.push("/");
     } catch (error) {
-      setError(
+      showToast(
+        "error",
         error instanceof Error ? error.message : "Something went wrong",
       );
     } finally {
@@ -40,7 +55,6 @@ export default function LoginPage() {
 
   function switchMode() {
     setMode((current) => (current === "login" ? "signup" : "login"));
-    setError("");
   }
 
   return (
@@ -101,29 +115,37 @@ export default function LoginPage() {
           )}
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
         <button
           disabled={loading}
-          className="w-full rounded-xl bg-[#4F46E5] p-3 text-sm font-medium text-white hover:bg-[#4338CA] transition-colors disabled:opacity-60"
+          className="flex w-full items-center justify-center rounded-xl bg-[#4F46E5] p-3 text-sm font-medium text-white transition-colors hover:bg-[#4338CA] disabled:opacity-60"
         >
-          {loading
-            ? mode === "login"
-              ? "Signing in..."
-              : "Creating account..."
-            : mode === "login"
-              ? "Sign in"
-              : "Sign up"}
+          {loading ? (
+            <LoaderCircle size={18} className="animate-spin" />
+          ) : mode === "login" ? (
+            "Sign in"
+          ) : (
+            "Sign up"
+          )}
         </button>
 
         <button
           type="button"
           onClick={switchMode}
+          disabled={loading}
           className="w-full rounded-xl border border-[#C7CBF5] p-3 text-sm font-medium text-[#4F46E5] hover:bg-[#EEF0FE] transition-colors"
         >
           {mode === "login" ? "Sign up" : "Back to sign in"}
         </button>
       </form>
+
+      <ToastContainer
+        toasts={toasts}
+        onDismiss={(id) =>
+          setToasts((current) =>
+            current.filter((toast) => toast.id !== id),
+          )
+        }
+      />
     </main>
   );
 }
