@@ -1,0 +1,7 @@
+Database migrations for the ticket dashboard.
+
+Run commands from the backend directory:
+
+    ./venv/bin/alembic upgrade head
+    ./venv/bin/alembic revision --autogenerate -m "describe change"
+    ./venv/bin/alembic downgrade -1
