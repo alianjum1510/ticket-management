@@ -41,10 +41,8 @@ dist/
 pip-wheel-metadata/
 
 # Local databases
-*.db
 *.sqlite
 *.sqlite3
-app.db
 
 # Node / package manager dependencies
 node_modules/
